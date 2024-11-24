@@ -124,8 +124,8 @@ func (ui *ChatUI) refreshPeers() {
 	// clear is thread-safe
 	ui.peersList.Clear()
 
-	for _, p := range peers {
-		fmt.Fprintln(ui.peersList, shortID(p))
+	for i, p := range peers {
+		fmt.Fprintf(ui.peersList, "[%d] %s\n", i+1, p.String()) // Display peer IDs in numerical order
 	}
 
 	ui.app.Draw()
@@ -155,6 +155,29 @@ func (ui *ChatUI) handleEvents() {
 	for {
 		select {
 		case input := <-ui.inputCh:
+			if len(input) > 8 && input[:8] == "/status " {
+				peerID := input[8:] // Extract Peer ID after "/status "
+				isOnline := isPeerOnline(peerID, ui.cr.ListPeers())
+				if isOnline {
+					ui.displaySelfMessage(fmt.Sprintf("Peer %s is online!", peerID))
+				} else {
+					ui.displaySelfMessage(fmt.Sprintf("Peer %s is offline.", peerID))
+				}
+				continue
+			}
+
+			if len(input) > 7 && input[:7] == "/peers " {
+				peers := ui.cr.ListPeers()
+				if len(peers) == 0 {
+					ui.displaySelfMessage("No peers are currently connected.")
+				} else {
+					ui.displaySelfMessage("Connected peers:")
+					for _, p := range peers {
+						ui.displaySelfMessage(p.String())
+					}
+				}
+			}
+
 			// when the user types in a line, publish it to the chat room and print to the message window
 			err := ui.cr.Publish(input)
 			if err != nil {

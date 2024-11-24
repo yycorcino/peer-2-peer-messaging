@@ -110,3 +110,12 @@ func (cr *ChatRoom) readLoop() {
 func topicName(roomName string) string {
 	return "chat-room:" + roomName
 }
+
+func isPeerOnline(peerID string, peers []peer.ID) bool {
+	for _, p := range peers {
+		if p.String() == peerID {
+			return true
+		}
+	}
+	return false
+}
