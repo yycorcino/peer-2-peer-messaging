@@ -23,7 +23,7 @@ const DiscoveryServiceTag = "pubsub-chat-example"
 func main() {
 	// parse some flags to set our nickname and the room to join
 	nickFlag := flag.String("nick", "", "nickname to use in chat. will be generated if empty")
-	roomFlag := flag.String("room", "awesome-chat-room", "name of chat room to join")
+	roomFlag := flag.String("room", "general", "name of chat room to join")
 	flag.Parse()
 
 	ctx := context.Background()
