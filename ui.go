@@ -21,6 +21,7 @@ type ChatUI struct {
 	msgW    io.Writer
 	inputCh chan string
 	doneCh  chan struct{}
+	friends []string
 }
 
 // NewChatUI returns a new ChatUI struct that controls the text UI.
@@ -99,6 +100,7 @@ func NewChatUI(cr *ChatRoom) *ChatUI {
 		msgW:      msgBox,
 		inputCh:   inputCh,
 		doneCh:    make(chan struct{}, 1),
+		friends:   []string{},
 	}
 }
 
@@ -166,17 +168,55 @@ func (ui *ChatUI) handleEvents() {
 				continue
 			}
 
-			if len(input) > 7 && input[:7] == "/peers " {
-				peers := ui.cr.ListPeers()
-				if len(peers) == 0 {
-					ui.displaySelfMessage("No peers are currently connected.")
+			// Handle /addFriend command
+			if len(input) > 10 && input[:10] == "/addFriend" {
+				friendID := input[11:] // Extract Peer ID after "/addFriend "
+
+				// Check if the peer ID is already in the list
+				if contains(ui.friends, friendID) {
+					ui.displaySelfMessage(fmt.Sprintf("Peer %s is already in your friends list.", friendID))
 				} else {
-					ui.displaySelfMessage("Connected peers:")
-					for _, p := range peers {
-						ui.displaySelfMessage(p.String())
+					ui.friends = append(ui.friends, friendID) // Add to the slice
+					ui.displaySelfMessage(fmt.Sprintf("Added peer %s to your friends list.", friendID))
+				}
+				continue
+			}
+
+			// Handle /viewFriends command
+			if input == "/viewFriends" {
+				if len(ui.friends) == 0 {
+					ui.displaySelfMessage("Your friends list is empty.")
+				} else {
+					ui.displaySelfMessage("Your friends list:")
+					for _, friend := range ui.friends {
+						ui.displaySelfMessage(friend)
 					}
 				}
+				continue
 			}
+
+			if input == "/dm" {
+				ui.displaySelfMessage("You're prompting to direct message another user.")
+				ui.displaySelfMessage("Please enter the Peer ID of the user you want to DM:")
+
+				peer_ID := <-ui.inputCh
+				ui.displaySelfMessage(fmt.Sprintf("You entered Peer ID: %s", peer_ID))
+
+				continue
+			}
+
+			//currently not working
+			// if len(input) > 7 && input[:7] == "/peers " {
+			// 	peers := ui.cr.ListPeers()
+			// 	if len(peers) == 0 {
+			// 		ui.displaySelfMessage("No peers are currently connected.")
+			// 	} else {
+			// 		ui.displaySelfMessage("Connected peers:")
+			// 		for _, p := range peers {
+			// 			ui.displaySelfMessage(p.String())
+			// 		}
+			// 	}
+			// }
 
 			// when the user types in a line, publish it to the chat room and print to the message window
 			err := ui.cr.Publish(input)
@@ -205,4 +245,13 @@ func (ui *ChatUI) handleEvents() {
 // withColor wraps a string with color tags for display in the messages text box.
 func withColor(color, msg string) string {
 	return fmt.Sprintf("[%s]%s[-]", color, msg)
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
