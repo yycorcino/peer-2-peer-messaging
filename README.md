@@ -17,9 +17,8 @@ We created a Peer to Peer messaging chat application inside the terminal utilizi
 
 What can the System do?
 
-- A user can login with there username. (Automatically generate username if not provided and generate ID)
+- A user can login with their username. (Automatically generates a username if not provided and generate ID)
 - A user can friend existing users. (Accepting friend invitations **DOESN'T EXIST**)
-- A user can send messages to online friends.
 - A user can create chat rooms that anybody can join and see who is currently viewing that chat room.
 - Pure P2P application: Nodes may be added or removed as needed without configurations.
 
@@ -33,11 +32,14 @@ To run the program with a name:
 go run . -nick=<name>
 ```
 
-To run the program and enter a private chatroom:
+To run the program and enter a private chatroom with or without a name:
+```
+go run . -nick=<name> -room=<room name>
+```
 ```
 go run . -room=<room name>
 ```
-To exit the chatroom run this in the command line:
+To exit the chatroom run this command:
 ```
 /quit
 ```
@@ -47,6 +49,16 @@ Peers that are shown are considered online, however, you can also test this comm
 /status <full peer ID>
 ```
 The full peer ID will be listed in the peers column. Note: Status does not check for self therefore users can only check the status of other users. 
+
+If you want to add a peer currently online as a friend type:
+```
+/addFriend <full peer ID>
+```
+To view your friends list type this command:
+```
+/viewFriends
+```
+In the program's current state, the full peer ID is required to test commands such as "/status" and "/addFriend".
 
 Base Project Reference: https://github.com/libp2p/go-libp2p/tree/master/examples/pubsub/chat
 Terminal Prettified References: [tcell](https://github.com/gdamore/tcell) and [tview](https://github.com/rivo/tview)
