@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"time"
+	"strings"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -27,82 +28,82 @@ type ChatUI struct {
 // NewChatUI returns a new ChatUI struct that controls the text UI.
 // It won't actually do anything until you call Run().
 func NewChatUI(cr *ChatRoom) *ChatUI {
-	app := tview.NewApplication()
+    app := tview.NewApplication()
 
-	// make a text view to contain our chat messages
-	msgBox := tview.NewTextView()
-	msgBox.SetDynamicColors(true)
-	msgBox.SetBorder(true)
-	msgBox.SetTitle(fmt.Sprintf("Room: %s", cr.roomName))
+    // Make a text view to contain chat messages
+    msgBox := tview.NewTextView()
+    msgBox.SetDynamicColors(true)
+    msgBox.SetBorder(true)
+    msgBox.SetTitle(fmt.Sprintf("Room: %s", cr.roomName))
 
-	// text views are io.Writers, but they don't automatically refresh.
-	// this sets a change handler to force the app to redraw when we get
-	// new messages to display.
-	msgBox.SetChangedFunc(func() {
-		app.Draw()
-	})
+    // Force redraw on new messages
+    msgBox.SetChangedFunc(func() {
+        app.Draw()
+    })
 
-	// an input field for typing messages into
-	inputCh := make(chan string, 32)
-	input := tview.NewInputField().
-		SetLabel(cr.nick + " > ").
-		SetFieldWidth(0).
-		SetFieldBackgroundColor(tcell.ColorBlack)
+    // Input field for typing messages
+    inputCh := make(chan string, 32)
+    input := tview.NewInputField().
+        SetLabel(cr.nick + " > ").
+        SetFieldWidth(0).
+        SetFieldBackgroundColor(tcell.ColorBlack)
 
-	// the done func is called when the user hits enter, or tabs out of the field
-	input.SetDoneFunc(func(key tcell.Key) {
-		if key != tcell.KeyEnter {
-			// we don't want to do anything if they just tabbed away
-			return
-		}
-		line := input.GetText()
-		if len(line) == 0 {
-			// ignore blank lines
-			return
-		}
+    input.SetDoneFunc(func(key tcell.Key) {
+        if key != tcell.KeyEnter {
+            return
+        }
+        line := input.GetText()
+        if len(line) == 0 {
+            return
+        }
+        if line == "/quit" {
+            app.Stop()
+            return
+        }
+        inputCh <- line
+        input.SetText("")
+    })
 
-		// bail if requested
-		if line == "/quit" {
-			app.Stop()
-			return
-		}
+    // Peers list
+    peersList := tview.NewTextView()
+    peersList.SetBorder(true)
+    peersList.SetTitle("Peers")
+    peersList.SetChangedFunc(func() { app.Draw() })
 
-		// send the line onto the input chan and reset the field text
-		inputCh <- line
-		input.SetText("")
-	})
+    // Peer ID box
+    peerIDBox := tview.NewTextView()
+    peerIDBox.SetBorder(true)
+    peerIDBox.SetTitle("Your Peer ID")
+    peerIDBox.SetText(cr.self.String()) // Populate with peer ID
+    peerIDBox.SetDynamicColors(true)
 
-	// make a text view to hold the list of peers in the room, updated by ui.refreshPeers()
-	peersList := tview.NewTextView()
-	peersList.SetBorder(true)
-	peersList.SetTitle("Peers")
-	peersList.SetChangedFunc(func() { app.Draw() })
+    // Chat panel with messages and peers
+    chatPanel := tview.NewFlex().
+        AddItem(msgBox, 0, 1, false).
+        AddItem(peersList, 20, 1, false)
 
-	// chatPanel is a horizontal box with messages on the left and peers on the right
-	// the peers list takes 20 columns, and the messages take the remaining space
-	chatPanel := tview.NewFlex().
-		AddItem(msgBox, 0, 1, false).
-		AddItem(peersList, 20, 1, false)
+    // Vertical layout: chatPanel at the top, input field, and peer ID at the bottom
+    flex := tview.NewFlex().
+    SetDirection(tview.FlexRow).
+		AddItem(peerIDBox, 0, 1, false).  // Peer ID Box at the top
+		AddItem(chatPanel, 0, 3, false).  // Chat Panel in the middle (adjust proportion if needed)
+		AddItem(input, 1, 1, true)        // Input Field at the bottom (takes up available space)
 
-	// flex is a vertical box with the chatPanel on top and the input field at the bottom.
 
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(chatPanel, 0, 1, false).
-		AddItem(input, 1, 1, true)
+    app.SetRoot(flex, true)
 
-	app.SetRoot(flex, true)
-
-	return &ChatUI{
-		cr:        cr,
-		app:       app,
-		peersList: peersList,
-		msgW:      msgBox,
-		inputCh:   inputCh,
-		doneCh:    make(chan struct{}, 1),
-		friends:   []string{},
-	}
+    return &ChatUI{
+        cr:        cr,
+        app:       app,
+        peersList: peersList,
+        msgW:      msgBox,
+        inputCh:   inputCh,
+        doneCh:    make(chan struct{}, 1),
+        friends:   []string{},
+    }
 }
+
+
 
 // Run starts the chat event loop in the background, then starts
 // the event loop for the text UI.
@@ -203,6 +204,22 @@ func (ui *ChatUI) handleEvents() {
 				ui.displaySelfMessage(fmt.Sprintf("You entered Peer ID: %s", peer_ID))
 
 				continue
+			}
+
+	
+			if len(input) > 12 && input[:12] == "/newChatRoom" {
+				// Extract room name after the "/newChatroom" command
+				roomName := input[13:] // Skip the "/newChatroom " part
+				
+				// Trim any leading or trailing spaces
+				roomName = strings.TrimSpace(roomName)
+			
+				if roomName == "" {
+					ui.displaySelfMessage("Error: Please provide a room name.")
+				} else {
+					// Call the RunChatUI function to create a new room		
+					RunChatUI(ui.cr.ctx, ui.cr.host, ui.cr.nick, roomName)
+				}
 			}
 
 			//currently not working

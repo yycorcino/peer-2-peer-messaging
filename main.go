@@ -14,6 +14,8 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
+var ui *ChatUI
+
 // DiscoveryInterval is how often we re-publish our mDNS records.
 const DiscoveryInterval = time.Hour
 
@@ -27,43 +29,51 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
-
+	
 	// create a new libp2p Host that listens on a random TCP port
 	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"))
 	if err != nil {
 		panic(err)
 	}
-
-	// create a new PubSub service using the GossipSub router
-	ps, err := pubsub.NewGossipSub(ctx, h)
-	if err != nil {
-		panic(err)
-	}
-
-	// setup local mDNS discovery
-	if err := setupDiscovery(h); err != nil {
-		panic(err)
-	}
-
+	
 	// use the nickname from the cli flag, or a default if blank
 	nick := *nickFlag
 	if len(nick) == 0 {
 		nick = defaultNick(h.ID())
 	}
 
-	// join the room from the cli flag, or the flag default
 	room := *roomFlag
+	
+	RunChatUI(ctx, h, nick, room)
+
+	// put pause then call runChatUI
+}
+
+func RunChatUI(ctx context.Context, h host.Host, nickname string, roomName string) {
+
+	// setup local mDNS discovery
+	if err := setupDiscovery(h); err != nil {
+		panic(err)
+	}
+	
+	// create a new PubSub service using the GossipSub router
+	ps, err := pubsub.NewGossipSub(ctx, h)
+	if err != nil {
+		fmt.Println("Error creating new room:", err)
+		return
+	}
 
 	// join the chat room
-	cr, err := JoinChatRoom(ctx, ps, h.ID(), nick, room)
+	cr, err := JoinChatRoom(ctx, ps,h , h.ID(), nickname, roomName)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error joining chat room:", err)
+		return
 	}
 
 	// draw the UI
 	ui := NewChatUI(cr)
-	if err = ui.Run(); err != nil {
-		printErr("error running text UI: %s", err)
+	if err := ui.Run(); err != nil {
+		fmt.Println("Error running chat UI:", err)
 	}
 }
 
@@ -93,7 +103,7 @@ type discoveryNotifee struct {
 // the PubSub system will automatically start interacting with them if they also
 // support PubSub.
 func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
-	fmt.Printf("discovered new peer %s\n", pi.ID)
+	// fmt.Printf("discovered new peer %s\n", pi.ID)
 	err := n.h.Connect(context.Background(), pi)
 	if err != nil {
 		fmt.Printf("error connecting to peer %s: %s\n", pi.ID, err)
