@@ -18,7 +18,7 @@ We created a Peer to Peer messaging chat application inside the terminal utilizi
 What can the System do?
 
 - A user can login with their username. (Automatically generates a username if not provided and generate ID)
-- A user can friend existing users. (Accepting friend invitations **DOESN'T EXIST**)
+- A user can add existing users to their friend's list and view it. (Accepting friend invitations **DOESN'T EXIST**)
 - A user can create chat rooms that anybody can join and see who is currently viewing that chat room.
 - Pure P2P application: Nodes may be added or removed as needed without configurations.
 
