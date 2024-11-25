@@ -43,13 +43,24 @@ func main() {
 	}
 
 	room := *roomFlag
-	
-	RunChatUI(ctx, h, nick, room)
+	var newRoom string
+	for {
+        newRoom = RunChatUI(ctx, h, nick, room)
+        
+        // Check if the room is valid or any other condition to break the loop
+        if newRoom != "" {  // You can replace this with any valid condition
+            fmt.Println("Room:", newRoom)
+            break
+        }
+		time.Sleep(1 * time.Second)
+    }
 
+	// newRoom := RunChatUI(ctx, h, nick, room)
+	// fmt.Println(newRoom)
 	// put pause then call runChatUI
 }
 
-func RunChatUI(ctx context.Context, h host.Host, nickname string, roomName string) {
+func RunChatUI(ctx context.Context, h host.Host, nickname string, roomName string) string{
 
 	// setup local mDNS discovery
 	if err := setupDiscovery(h); err != nil {
@@ -60,14 +71,14 @@ func RunChatUI(ctx context.Context, h host.Host, nickname string, roomName strin
 	ps, err := pubsub.NewGossipSub(ctx, h)
 	if err != nil {
 		fmt.Println("Error creating new room:", err)
-		return
+		return "_exit"
 	}
 
 	// join the chat room
 	cr, err := JoinChatRoom(ctx, ps,h , h.ID(), nickname, roomName)
 	if err != nil {
 		fmt.Println("Error joining chat room:", err)
-		return
+		return "_exit"
 	}
 
 	// draw the UI
@@ -75,6 +86,8 @@ func RunChatUI(ctx context.Context, h host.Host, nickname string, roomName strin
 	if err := ui.Run(); err != nil {
 		fmt.Println("Error running chat UI:", err)
 	}
+
+	return "room"
 }
 
 // printErr is like fmt.Printf, but writes to stderr.
