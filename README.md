@@ -23,6 +23,31 @@ What can the System do?
 - A user can create chat rooms that anybody can join and see who is currently viewing that chat room.
 - Pure P2P application: Nodes may be added or removed as needed without configurations.
 
+To run the program without setting a name:
+```
+go run .
+```
+
+To run the program with a name:
+```
+go run . -nick=<name>
+```
+
+To run the program and enter a private chatroom:
+```
+go run . -room=<room name>
+```
+To exit the chatroom run this in the command line:
+```
+/quit
+```
+When you run the command to get into the chatroom, you should see the general chatroom where incoming messages will display. A peers list is located on the right side displaying detected peers in numerical order. 
+Peers that are shown are considered online, however, you can also test this command to check if the peer is online:
+```
+/status <full peer ID>
+```
+The full peer ID will be listed in the peers column. Note: Status does not check for self therefore users can only check the status of other users. 
+
 Base Project Reference: https://github.com/libp2p/go-libp2p/tree/master/examples/pubsub/chat
 Terminal Prettified References: [tcell](https://github.com/gdamore/tcell) and [tview](https://github.com/rivo/tview)
 
