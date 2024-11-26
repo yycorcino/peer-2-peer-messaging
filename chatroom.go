@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-
+	"github.com/libp2p/go-libp2p/core/host"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -20,6 +20,7 @@ type ChatRoom struct {
 	Messages chan *ChatMessage
 
 	ctx   context.Context
+	host  host.Host
 	ps    *pubsub.PubSub
 	topic *pubsub.Topic
 	sub   *pubsub.Subscription
@@ -38,14 +39,15 @@ type ChatMessage struct {
 
 // JoinChatRoom tries to subscribe to the PubSub topic for the room name, returning
 // a ChatRoom on success.
-func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickname string, roomName string) (*ChatRoom, error) {
-	// join the pubsub topic
+func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, h host.Host, selfID peer.ID, nickname string, roomName string) (*ChatRoom, error) {
+
+	// Join the pubsub topic
 	topic, err := ps.Join(topicName(roomName))
 	if err != nil {
 		return nil, err
 	}
 
-	// and subscribe to it
+	// And subscribe to it
 	sub, err := topic.Subscribe()
 	if err != nil {
 		return nil, err
@@ -53,6 +55,7 @@ func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickna
 
 	cr := &ChatRoom{
 		ctx:      ctx,
+		host:     h,
 		ps:       ps,
 		topic:    topic,
 		sub:      sub,
@@ -66,6 +69,7 @@ func JoinChatRoom(ctx context.Context, ps *pubsub.PubSub, selfID peer.ID, nickna
 	go cr.readLoop()
 	return cr, nil
 }
+
 
 // Publish sends a message to the pubsub topic.
 func (cr *ChatRoom) Publish(message string) error {
